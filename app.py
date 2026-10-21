@@ -34,12 +34,12 @@ async def mock_fastapi_webhook_backend(payload: dict):
 # ==========================================
 # 🎨 3. Streamlit 前端網頁與多租戶設計 (2026 最新標準)
 # ==========================================
-st.set_page_config(layout="wide", page_title="Amour CRM 企業管理系統")
+st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
 
 if "mock_tenant" not in st.session_state:
     st.session_state.mock_tenant = "愛沐家居 (A公司)"
 
-st.title("👑 Amour CRM 企業管理 (SaaS 原型系統)")
+st.title("👑CRM 企業管理系統")
 
 # 撈取使用者資料
 try:
