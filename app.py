@@ -41,12 +41,12 @@ async def mock_fastapi_webhook_backend(payload: dict):
 # ==========================================
 # 🎨 3. Streamlit 前端網頁安全初始化
 # ==========================================
-st.set_page_config(layout="wide", page_title="Amour CRM 企業管理系統")
+st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
 
 if "mock_tenant" not in st.session_state:
     st.session_state.mock_tenant = "愛沐家居 (A公司)"
 
-st.title("👑 Amour CRM 企業管理 (SaaS 原型系統)")
+st.title("👑CRM 企業管理系統")
 
 # 撈取使用者資料
 try:
@@ -61,7 +61,7 @@ with st.sidebar:
     st.header("🏢 SaaS 多租戶隔離切換")
     st.session_state.mock_tenant = st.selectbox(
         "請選擇當前登入企業（租戶）：",
-        ["愛沐家居 (A公司)", "他牌系統家具 (B公司)"]
+        ["愛沐家居", "他牌系統家具"]
     )
 
     st.markdown("---")
@@ -78,13 +78,13 @@ with st.sidebar:
 # ==========================================
 # 🛠️ 4. 上半部：DEMO 實戰測試工具箱 (無 LINE OA 模擬)
 # ==========================================
-st.header("🛠️ DEMO 實戰測試工具箱 (模擬無 LINE OA 進件與整合)")
+st.header("🛠️ DEMO SandBox (模擬)")
 
 # ✅ Fix 6: 提前初始化 contact_map，避免後續 NameError
 contact_map = {}
 
-if st.session_state.mock_tenant == "他牌系統家具 (B公司)":
-    st.warning("⚠️ 請將左側企業切換回「愛沐家居 (A公司)」以進行內部驗證場域的進件模擬。")
+if st.session_state.mock_tenant == "他牌系統家具":
+    st.warning("⚠️ 請將左側企業切換回「愛沐家居」以進行內部驗證場域的進件模擬。")
 else:
     tab1, tab2, tab3 = st.tabs([
         "📥 核心驗證 A：新客首期 Webhook 派工",
@@ -283,8 +283,8 @@ if current_user:
         f"登入視角：{current_user['name']} (保留最新 {limit_count} 則)"
     )
 
-    if st.session_state.mock_tenant == "他牌系統家具 (B公司)":
-        st.info("🔒 跨企業隔離成功：此處為B公司獨立租戶空間。A公司（愛沐家居）的客戶資料已受底層保護，完全不顯示。")
+    if st.session_state.mock_tenant == "他牌系統家具":
+        st.info("🔒 跨企業隔離成功：此處為他牌系統公司獨立租戶空間。（愛沐家居）的客戶資料已受底層保護，完全不顯示。")
     else:
         try:
             if current_user["role"] == "admin":
