@@ -44,7 +44,7 @@ async def mock_fastapi_webhook_backend(payload: dict):
 st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
 
 if "mock_tenant" not in st.session_state:
-    st.session_state.mock_tenant = "愛沐家居 (A公司)"
+    st.session_state.mock_tenant = "愛沐家居"
 
 st.title("👑 CRM 企業管理系統")
 
@@ -78,7 +78,7 @@ with st.sidebar:
 # ==========================================
 # 🛠️ 4. 上半部：DEMO 實戰測試工具箱 (無 LINE OA 模擬)
 # ==========================================
-st.header("🛠️ DEMO SandBoc (模擬)")
+st.header("🛠️ DEMO SandBox (模擬)")
 
 # ✅ FIX 1: 提前初始化，避免 "他牌" 分支與 tab2 try/except 例外時 NameError
 contact_map: dict = {}
