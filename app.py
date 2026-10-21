@@ -7,8 +7,8 @@ SUPABASE_URL = "https://aeqteslaqeswiahwqgpi.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlcXRlc2xhcWVzd2lhaHdxZ3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MjY1MjQsImV4cCI6MjEwODEwMjUyNH0.Fla34T4FcVXgf_n5ygUICGmXciiWxhnfWuRxLHsY8WU"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-st.set_page_config(layout="wide", page_title="Amour CRM 後台管理系統")
-st.title("💬 Amour CRM 企業管理後台 (DEMO 原型)")
+st.set_page_config(layout="wide", page_title="CRM 管理系統")
+st.title("💬 CRM 企業管理後台 (DEMO 原型)")
 
 # 2. 撈取資料庫現有的員工，建立側邊欄帳號切換登入器 (DEMO 用)
 try:
@@ -59,7 +59,7 @@ if current_user:
 
 # 4. DEMO 工具箱：手動模擬新客戶從廣告進件 (不需要 LINE 就能測試！)
 st.markdown("---")
-st.header("🛠️ DEMO 實戰測試工具箱 (免開 LINE 模擬客戶進件)")
+st.header("🛠️ DEMO 測試工具箱")
 col1, col2, col3 = st.columns(3)
 
 with col1:
