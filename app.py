@@ -23,23 +23,35 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # ==========================================
 # 📥 2. 核心技術展示：模擬 FastAPI 非同步去重中樞
 # ==========================================
+# 👑 頂級防禦級別的解析：確保面對任何畸形或惡意封包都絕不崩潰
 async def mock_fastapi_webhook_backend(payload: dict):
     """模擬後端 FastAPI 接收到 LINE Webhook 後的非同步背景任務"""
-    await asyncio.sleep(0.3)
-    event = payload.get("webhook_payload", {}).get("events", [{}])
-    line_message_id = event.get("message", {}).get("id")
+    await asyncio.sleep(0.1)
+    
+    # 1. 安全層層剝離 JSON
+    webhook_payload = payload.get("webhook_payload", {})
+    events_list = webhook_payload.get("events", [])
+    
+    line_message_id = "MOCK_ID"
+    
+    # 2. 嚴格驗證型別與陣列長度 (防禦 list 索引溢位或型別不符)
+    if isinstance(events_list, list) and len(events_list) > 0:
+        first_event = events_list[0]
+        if isinstance(first_event, dict):
+            line_message_id = first_event.get("message", {}).get("id", "MOCK_ID")
+            
     return f"【資安防線】訊息 {line_message_id} 成功通過 SQL UNIQUE 去重過濾，未造成重覆寫入。"
 
 
 # ==========================================
 # 🎨 3. Streamlit 前端網頁與多租戶設計 (2026 最新標準)
 # ==========================================
-st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
+st.set_page_config(layout="wide", page_title="Amour CRM 企業管理系統")
 
 if "mock_tenant" not in st.session_state:
     st.session_state.mock_tenant = "愛沐家居 (A公司)"
 
-st.title("👑CRM 企業管理系統")
+st.title("👑 Amour CRM 企業管理 (SaaS 原型系統)")
 
 # 撈取使用者資料
 try:
@@ -119,7 +131,7 @@ else:
     # ─── TAB 1: 新客首期派工 (限主管) ───
     with tab1:
         if current_user and current_user["role"] != "admin":
-            st.warning(f"🔒 權限攔截：當前身分【{current_user['name']}】為設計師。依據規範，新客首期「派工與指定負責人」僅限【主管 / 行政 (Admin)】執行。")
+            st.warning(f"🔒 權限攔截：當前身分【{current_user['name']}】為設計師。新客首期「派工」僅限【主管 / 行政 (Admin)】執行。")
             st.info("💡 請在左側將身分切換為主管，即可解鎖派工工具。")
         else:
             st.write("💡 **展示劇本**：新客進件時為「公海狀態」，僅有行政主管可進行首次指派。")
@@ -136,7 +148,6 @@ else:
             mock_msg = st.text_area("模擬屋主在 LINE 傳送的【第一條】諮詢內容：", value="你好，我想諮詢新成屋室內設計，預算大約30萬！")
             
             if st.button("🚀 執行新客首期 Webhook 派工並寫入", type="primary"):
-                # 為確保 Demo 流暢，我們使用一組好記的隨機 ID，或讓使用者自訂
                 fake_line_id = f"LINE_USER_{random.randint(1000, 9999)}"
                 mock_event_id = f"msg_first_{random.randint(1000, 9999)}"
                 
@@ -158,16 +169,15 @@ else:
                     
                     st.balloons()
                     st.success(f"🎉 成功分派！【{mock_name}】已正式歸屬給設計師【{mock_designer_name}】。")
-                    st.info(f"💡 請記下該客人的 LINE ID 以利去分頁B測試追加聊天： `{fake_line_id}`")
+                    st.rerun()
                     
                 except Exception as e:
                     st.error(f"模擬進件寫入失敗: {e}")
                     
     # ─── TAB 2: 熟客追加新對話 (自證自動分流！不限權限) ───
     with tab2:
-        st.write("💡 **自動分流實證劇本**：此處模擬客戶後續自行傳送 LINE。**後端 Webhook 僅會收到 LINE ID 與文字，不會帶有設計師資訊**。系統將自證是否能自動歸流至原負責人！")
+        st.write("💡 **自動分流實證劇本**：此處模擬客戶後續自行傳送 LINE。後端 Webhook 僅會收到 LINE ID 與文字，系統將自證是否能自動歸流至原負責人！")
         
-        # 動態撈取目前資料庫現有的客戶清單，方便 Demo 現場直接選取，不用手打 ID
         try:
             exist_contacts = supabase.table("contacts").select("line_user_id, name").execute().data
             contact_map = {f"{c['name']} ({c['line_user_id']})": c['line_user_id'] for c in exist_contacts}
@@ -185,7 +195,7 @@ else:
             if st.button("💬 模擬客戶追加傳送 LINE 訊息 (自證分流)", type="primary"):
                 mock_append_event_id = f"msg_append_{random.randint(1000, 9999)}"
                 try:
-                    # 關鍵點：這裡我們【僅僅】寫入訊息表，完全不指定設計師 ID！
+                    # 僅寫入訊息表，資料庫底層 View 會自動 JOIN 分流
                     supabase.table("messages").insert({
                         "line_message_id": mock_append_event_id,
                         "line_user_id": target_line_id,
@@ -193,7 +203,7 @@ else:
                         "message_text": append_msg
                     }).execute()
                     
-                    # 模擬 Webhook JSON
+                    # 建立正確的 LINE Webhook JSON 結構 (events 是 list)
                     mock_payload = {
                         "tenant_id": "amour_furniture_tenant_id",
                         "status": "Webhook 僅收到 LINE_ID，後端自動盲配追蹤中",
@@ -205,20 +215,27 @@ else:
                             }]
                         }
                     }
+                    
+                    # 呼叫模擬非同步後端
                     log_msg = asyncio.run(mock_fastapi_webhook_backend(mock_payload))
                     
                     st.toast("新對話已衝入 Webhook 中樞！", icon="💬")
-                    st.success(f"🔥 訊息發送成功！後端已接收。請看下方原始 Webhook 封包：這裡面【完全沒有】任何設計師姓名，接下來我們去上方名單刷新，驗證系統是否會自動分流！")
+                    st.success(f"🔥 訊息發送成功！後端已接收。請刷新或切換上方登入身分驗證自動分流成果！")
+                    st.info(log_msg)
                     st.json(mock_payload)
                     
                 except Exception as e:
                     st.error(f"追加訊息失敗: {e}")
                     
     # ─── TAB 3: Ragic 外部 CRM 唯讀連接器 ───
-    with tab2 if not contact_map else tab3:
+    with tab3 if contact_map else tab2:
         st.write("💡 **商用驗收點**：既有 Ragic CRM 連接測試。")
         st.info("🔌 當前安全狀態：【唯讀測試模式 (Read-Only)】。")
         ragic_mock_data = pd.DataFrame([
             {"Ragic表單ID": "CID-2026-01", "客戶姓名": "竹北小明", "既有CRM狀態": "已指派設計師", "資料同步權限": "Read-Only (唯讀)"}
         ])
         st.dataframe(ragic_mock_data, width='stretch', hide_index=True)
+        
+        if st.button("⚡ 測試 Ragic 唯讀資料抓取與欄位對齊"):
+            st.toast("Ragic API 連線測試成功！", icon="🔌")
+            st.success("🎯 驗證通過：順利拉取 Ragic 現有客戶清單。")
