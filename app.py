@@ -72,7 +72,7 @@ if current_user:
 
 # 4. 模擬工具箱
 st.markdown("---")
-st.header("🛠️ DEMO 實戰測試工具箱 (免開 LINE 模擬客戶進件)")
+st.header("🛠️ DEMO 實戰測試工具箱 (模擬)")
 col1, col2, col3 = st.columns(3)
 
 with col1:
