@@ -384,7 +384,7 @@ if target_line_user_id_for_chat:
             supabase.table("messages")
             .select("*")
             .eq("line_user_id", target_line_user_id_for_chat)
-            .order("created_at", ascending=True)
+            .order("created_at", desc=False)
             .execute()
         )
         chat_history = messages_query.data
