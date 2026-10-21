@@ -402,5 +402,3 @@ if target_line_user_id_for_chat:
 
     except Exception as e:
         st.error(f"拉取完整對話歷史流失敗: {e}")
-        except Exception as e:
-            st.error(f"讀取安全檢視表失敗: {e}")
