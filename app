@@ -3,7 +3,7 @@ from supabase import create_client, Client
 import pandas as pd
 
 # 1. 初始化設定（請更換成你自己的 Supabase 網址與憑證）
-SUPABASE_URL = "https://supabase.com/dashboard/project/aeqteslaqeswiahwqgpi"
+SUPABASE_URL = "https://aeqteslaqeswiahwqgpi.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlcXRlc2xhcWVzd2lhaHdxZ3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MjY1MjQsImV4cCI6MjEwODEwMjUyNH0.Fla34T4FcVXgf_n5ygUICGmXciiWxhnfWuRxLHsY8WU"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
