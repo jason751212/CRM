@@ -42,17 +42,28 @@ if current_user:
         
     contacts_df = pd.DataFrame(query.data)
     
+    # 💡 修改後的防呆核心隔離顯示邏輯
+    contacts_df = pd.DataFrame(query.data)
+    
     if not contacts_df.empty:
-        # 重新排版表格欄位名稱，方便老闆看懂
-        contacts_df = contacts_df.rename(columns={
+        # 1. 先定義好我們「希望」對照轉換的字典
+        rename_dict = {
             "contact_name": "客戶名稱",
             "ad_source": "🎯 廣告來源標籤",
             "case_status": "📈 案件狀態",
             "designer_name": "負責設計師",
             "last_message": "💬 最新 LINE 對話"
-        })
-        # 唯獨不顯示背後的 ID 欄位
-        display_cols = ["客戶名稱", "🎯 廣告來源標籤", "📈 案件狀態", "負責設計師", "最新 LINE 對話"]
+        }
+        
+        # 2. 動態檢查：只有「真正存在」於 contacts_df 裡的欄位才進行改名
+        actual_rename = {k: v for k, v in rename_dict.items() if k in contacts_df.columns}
+        contacts_df = contacts_df.rename(columns=actual_rename)
+        
+        # 3. 動態決定要顯示哪些欄位（防止因為某個欄位不存在而噴 KeyError）
+        desired_cols = ["客戶名稱", "🎯 廣告來源標籤", "📈 案件狀態", "負責設計師", "💬 最新 LINE 對話"]
+        display_cols = [col for col in desired_cols if col in contacts_df.columns]
+        
+        # 4. 輸出表格
         st.dataframe(contacts_df[display_cols], use_container_width=True, hide_index=True)
     else:
         st.info("💡 目前您的名下沒有任何客戶名單。")
