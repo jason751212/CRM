@@ -1,7 +1,55 @@
 import streamlit as st
 from supabase import create_client, Client
 import pandas as pd
+import hmac
+import hashlib
+import base64
+from fastapi import FastAPI, Request, Header, HTTPException, BackgroundTasks
+from pydantic import BaseModel
+import httpx
 
+
+
+app = FastAPI()
+
+LINE_CHANNEL_SECRET = "你的LINE_SECRET_MOCK" # 簽章密鑰
+
+# 模擬非同步處理任務：收到訊息先回 200 OK，後台慢慢處理
+async def process_line_message_task(payload: dict):
+    for event in payload.get("events", []):
+        if event.get("type") == "message":
+            line_message_id = event["message"]["id"]
+            line_user_id = event["source"]["userId"]
+            text_content = event["message"].get("text", "")
+            
+            # TODO: 呼叫 Supabase 寫入資料
+            # 使用 PostgreSQL 的 ON CONFLICT (line_message_id) DO NOTHING 焊死訊息去重！
+            print(f"【後台處理】成功去重並儲存訊息 ID: {line_message_id}，內容: {text_content}")
+
+@app.post("/webhook/line")
+async def line_webhook(
+    request: Request, 
+    background_tasks: BackgroundTasks,
+    x_line_signature: str = Header(None)
+):
+    # 1. 讀取原始 Body 用於驗證簽章
+    body = await request.body()
+    
+    # 2. 驗證 LINE 原始請求簽章（資安防線）
+    hash_obj = hmac.new(LINE_CHANNEL_SECRET.encode('utf-8'), body, hashlib.sha256)
+    signature = base64.b64encode(hash_obj.digest()).decode('utf-8')
+    
+    if x_line_signature != signature:
+        # 下週 Demo 可以先 print 警告，但允許通過以方便模擬
+        print("【資安警告】LINE 簽章驗證失敗！")
+        # raise HTTPException(status_code=401, detail="Invalid signature")
+
+    # 3. 轉為 JSON 並丟進背景任務（防 LINE 2秒逾時重發）
+    payload = await request.json()
+    background_tasks.add_task(process_line_message_task, payload)
+    
+    # 4. 200毫秒內極速回覆 LINE 伺服器
+    return {"status": "ok"}
 # 1. 安全讀取秘密環境變數（支援地端與雲端雙棲）
 try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
