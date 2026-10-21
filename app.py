@@ -46,7 +46,7 @@ st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
 if "mock_tenant" not in st.session_state:
     st.session_state.mock_tenant = "愛沐家居 (A公司)"
 
-st.title("👑CRM 企業管理系統")
+st.title("👑 CRM 企業管理系統")
 
 # 撈取使用者資料
 try:
@@ -78,10 +78,10 @@ with st.sidebar:
 # ==========================================
 # 🛠️ 4. 上半部：DEMO 實戰測試工具箱 (無 LINE OA 模擬)
 # ==========================================
-st.header("🛠️ DEMO SandBox (模擬)")
+st.header("🛠️ DEMO SandBoc (模擬)")
 
-# ✅ Fix 6: 提前初始化 contact_map，避免後續 NameError
-contact_map = {}
+# ✅ FIX 1: 提前初始化，避免 "他牌" 分支與 tab2 try/except 例外時 NameError
+contact_map: dict = {}
 
 if st.session_state.mock_tenant == "他牌系統家具":
     st.warning("⚠️ 請將左側企業切換回「愛沐家居」以進行內部驗證場域的進件模擬。")
@@ -95,10 +95,13 @@ else:
     # ─── TAB 1: 新客首期派工 (限主管) ───
     with tab1:
         if current_user and current_user["role"] != "admin":
-            st.warning(f"🔒 權限攔截：當前身分【{current_user['name']}】為設計師。新客首期「派工與指定負責人」僅限【主管 / 行政 (Admin)】執行。")
+            st.warning(
+                f"🔒 權限攔截：當前身分【{current_user['name']}】為設計師。"
+                "新客首期「派工與指定負責人」僅限【主管 / 行政 (Admin)】執行。"
+            )
             st.info("💡 請在左側將身分切換為主管，即可解鎖派工工具。")
         else:
-            st.write("💡 **展示劇本**：新客進件時為「公海狀態」，僅有行政主管可進行首次指派。")
+            st.write("💡 新客進件時為「公海狀態」，僅有行政主管可進行首次指派。")
             col1, col2, col3 = st.columns(3)
             with col1:
                 mock_name = st.text_input("輸入模擬屋主姓名", value="竹北小明")
@@ -117,13 +120,12 @@ else:
 
             mock_msg = st.text_area(
                 "模擬屋主在 LINE 傳送的【第一條】諮詢內容：",
-                value="你好，我想諮詢新成屋室內設計，預算大約30萬！"
+                value="你好，我想諮詢新成屋室內設計，預算大約300萬！"
             )
 
             if st.button("🚀 執行新客首期 Webhook 派工並寫入", type="primary"):
                 fake_line_id = f"LINE_USER_{random.randint(1000, 9999)}"
                 mock_event_id = f"msg_first_{random.randint(1000, 9999)}"
-                random_status = random.choice(["初次洽談", "現場丈量", "已簽約成交", "已簽約成交"])
 
                 try:
                     supabase.table("contacts").insert({
@@ -131,7 +133,7 @@ else:
                         "name": mock_name,
                         "assigned_designer_id": mock_designer_id,
                         "utm_source": mock_ad,
-                        "status": random_status
+                        "status": "初次洽談"
                     }).execute()
 
                     supabase.table("messages").insert({
@@ -142,7 +144,7 @@ else:
                     }).execute()
 
                     st.balloons()
-                    st.success(f"🎉 成功分派！【{mock_name}】已正式歸屬給設計師【{mock_designer_name}】，初始狀態為【{random_status}】。")
+                    st.success(f"🎉 成功分派！【{mock_name}】已正式歸屬給設計師【{mock_designer_name}】。")
                     st.rerun()
 
                 except Exception as e:
@@ -150,18 +152,26 @@ else:
 
     # ─── TAB 2: 熟客追加新對話 (自動分流測試) ───
     with tab2:
-        st.write("💡 **自動分流實證劇本**：此處模擬客戶後續自行傳送 LINE。後端 Webhook 僅會收到 LINE ID 與文字，系統將自證是否能自動歸流至原負責人！")
+        st.write(
+            "💡 **自動分流實證劇本**：此處模擬客戶後續自行傳送 LINE。"
+            "後端 Webhook 僅會收到 LINE ID 與文字，系統將自證是否能自動歸流至原負責人！"
+        )
 
         try:
             exist_contacts = supabase.table("contacts").select("line_user_id, name").execute().data
-            contact_map = {f"{c['name']} ({c['line_user_id']})": c["line_user_id"] for c in exist_contacts}
+            contact_map = {
+                f"{c['name']} ({c['line_user_id']})": c["line_user_id"]
+                for c in exist_contacts
+            }
         except Exception:
             contact_map = {}
 
         if not contact_map:
             st.warning("⚠️ 資料庫目前無客戶資料，請先前往分頁A建立新客並完成指派。")
         else:
-            selected_target_contact = st.selectbox("請選擇要模擬傳送新訊息的客戶：", list(contact_map.keys()))
+            selected_target_contact = st.selectbox(
+                "請選擇要模擬傳送新訊息的客戶：", list(contact_map.keys())
+            )
             target_line_id = contact_map[selected_target_contact]
 
             append_msg = st.text_input(
@@ -181,49 +191,63 @@ else:
 
                     mock_payload = {
                         "tenant_id": "amour_furniture_tenant_id",
-                        "status": "Webhook 僅收到 LINE_ID，後端自動盲配追蹤中",
                         "webhook_payload": {
                             "events": [{
                                 "type": "message",
-                                "message": {"id": mock_append_event_id, "type": "text", "text": append_msg},
+                                "message": {
+                                    "id": mock_append_event_id,
+                                    "type": "text",
+                                    "text": append_msg
+                                },
                                 "source": {"userId": target_line_id}
                             }]
                         }
                     }
 
-                    log_msg = asyncio.run(mock_fastapi_webhook_backend(mock_payload))
+                    # ✅ FIX 2: 移除無用的 log_msg 接收（asyncio.run 回傳值此處不需要）
+                    asyncio.run(mock_fastapi_webhook_backend(mock_payload))
                     st.toast("新對話已衝入 Webhook 中樞！", icon="💬")
-                    st.success("🔥 訊息發送成功！後端已接收。下方列表已完成自動配對分流！")
-                    st.json(mock_payload)
+                    st.success("🔥 訊息已成功寫入 `messages` 表格歷史流。")
                     st.rerun()
 
                 except Exception as e:
                     st.error(f"追加訊息失敗: {e}")
 
     # ─── TAB 3: Ragic 外部 CRM 連接器 ───
-    # ✅ Fix 2: 固定使用 tab3，不再做 contact_map 條件判斷
+    # ✅ FIX 3: 原本 `with tab3 if contact_map else tab2` 邏輯錯誤
+    #    → 當 contact_map 為空時會把 Ragic 內容誤塞回 tab2，改為固定使用 tab3
     with tab3:
         st.write("💡 **商用驗收點**：既有 Ragic CRM 連接測試。")
         st.info("🔌 當前安全狀態：【唯讀測試模式 (Read-Only)】。")
+        if not contact_map:
+            st.warning("⚠️ 目前尚無客戶資料，請先於分頁A完成新客派工後再行測試。")
         ragic_mock_data = pd.DataFrame([{
             "Ragic表單ID": "CID-2026-01",
             "客戶姓名": "竹北小明",
             "既有CRM狀態": "已指派設計師",
             "資料同步權限": "Read-Only (唯讀)"
         }])
-        # ✅ Fix 4: width='stretch' → use_container_width=True
         st.dataframe(ragic_mock_data, use_container_width=True, hide_index=True)
 
 
 # ==========================================
-# 👑 5. 中間層：主管上帝視角營運圖表 (Admin 限定)
+# 📊 5. 中間層：主管上帝視角營運圖表 (Admin 限定)
 # ==========================================
-if current_user and current_user["role"] == "admin" and st.session_state.mock_tenant == "愛沐家居 (A公司)":
+if (
+    current_user
+    and current_user["role"] == "admin"
+    and st.session_state.mock_tenant == "愛沐家居"
+):
     st.markdown("---")
-    st.header("📊 主管上帝視角 ── 廣告歸因與設計師 KPI 儀表板")
+    st.header("📊 廣告歸因與設計師 KPI 儀表板")
 
     try:
-        raw_stats = supabase.table("v_designer_contacts").select("ad_source, case_status, designer_name").execute().data
+        raw_stats = (
+            supabase.table("v_designer_contacts")
+            .select("ad_source, case_status, designer_name")
+            .execute()
+            .data
+        )
         df_stats = pd.DataFrame(raw_stats)
     except Exception:
         df_stats = pd.DataFrame()
@@ -233,9 +257,9 @@ if current_user and current_user["role"] == "admin" and st.session_state.mock_te
             {"ad_source": "FB_2026現代北歐風專案", "case_status": "已簽約成交", "designer_name": "小華"},
             {"ad_source": "FB_2026現代北歐風專案", "case_status": "現場丈量",   "designer_name": "小華"},
             {"ad_source": "IG_工業風限時送丈量",   "case_status": "已簽約成交", "designer_name": "小美"},
-            {"ad_source": "門市實體QR_Code",        "case_status": "已簽約成交", "designer_name": "小華"},
-            {"ad_source": "門市實體QR_Code",        "case_status": "初次洽談",   "designer_name": "小美"},
-            {"ad_source": "自然流量",               "case_status": "初次洽談",   "designer_name": "小美"},
+            {"ad_source": "門市實體QR_Code",       "case_status": "已簽約成交", "designer_name": "小華"},
+            {"ad_source": "門市實體QR_Code",       "case_status": "初次洽談",   "designer_name": "小美"},
+            {"ad_source": "自然流量",              "case_status": "初次洽談",   "designer_name": "小美"},
         ])
 
     g_col1, g_col2 = st.columns(2)
@@ -252,16 +276,15 @@ if current_user and current_user["role"] == "admin" and st.session_state.mock_te
         if not success_df.empty:
             success_counts = success_df["ad_source"].value_counts().reset_index()
             success_counts.columns = ["廣告來源", "成交數量"]
-            # ✅ Fix 4: width='stretch' → use_container_width=True
+            # ✅ FIX 4: width='stretch' 已廢棄 → 改 use_container_width=True
             st.dataframe(success_counts, use_container_width=True, hide_index=True)
         else:
             st.info("💡 目前尚無已成交之客戶數據。")
 
-    # ✅ Fix 5: 移出 g_col2 區塊，放在雙欄外獨立呈現
+    # ✅ FIX 5: 圖表3 原本縮排錯誤被包在 g_col2 裡 → 移至雙欄外，全寬渲染
     st.subheader("3. 設計師接案與成交 KPI 對比")
     kpi_data = []
-    designers_list = df_stats["designer_name"].unique()
-    for d in designers_list:
+    for d in df_stats["designer_name"].unique():
         sub_df = df_stats[df_stats["designer_name"] == d]
         total_assigned = len(sub_df)
         total_closed = len(sub_df[sub_df["case_status"].str.contains("成交|簽約", na=False)])
@@ -275,46 +298,109 @@ if current_user and current_user["role"] == "admin" and st.session_state.mock_te
 # 📋 6. 下半部：核心隔離顯示名單
 # ==========================================
 st.markdown("---")
-# ✅ Fix 1: 補回正確縮排（原本整段沒有縮排）
+
+# ✅ FIX 6: 提前初始化，避免 section 7 因條件未達成而 NameError
+target_line_user_id_for_chat: str | None = None
+selected_chat_name: str = ""
+
 if current_user:
     limit_count = 30 if current_user["role"] == "admin" else 10
     st.subheader(
-        f"📋 客戶追蹤名單 ── 【{st.session_state.mock_tenant}】 ❯ "
-        f"登入視角：{current_user['name']} (保留最新 {limit_count} 則)"
+        f"📋 客戶追蹤名單 ── 【{st.session_state.mock_tenant}】"
+        f" ❯ 登入視角：{current_user['name']} (保留最新 {limit_count} 則)"
     )
 
     if st.session_state.mock_tenant == "他牌系統家具":
-        st.info("🔒 跨企業隔離成功：此處為他牌系統公司獨立租戶空間。（愛沐家居）的客戶資料已受底層保護，完全不顯示。")
+        st.info(
+            "🔒 跨企業隔離成功：此處為他牌公司獨立租戶空間。"
+            "（愛沐家居）的客戶資料已受底層保護，完全不顯示。"
+        )
     else:
         try:
             if current_user["role"] == "admin":
-                # ✅ Fix 3: select("") → select("*")
                 query = supabase.table("v_designer_contacts").select("*").limit(30).execute()
             else:
-                # ✅ Fix 3: select("") → select("*")
-                query = supabase.table("v_designer_contacts").select("*").eq("assigned_designer_id", current_user["id"]).limit(10).execute()
+                # ✅ FIX 7: 原縮排完全脫落，此處正確縮排於 else 內
+                query = (
+                    supabase.table("v_designer_contacts")
+                    .select("*")
+                    .eq("assigned_designer_id", current_user["id"])
+                    .limit(10)
+                    .execute()
+                )
 
             contacts_df = pd.DataFrame(query.data)
 
             if not contacts_df.empty:
+                st.write("👉 點選特定客戶查看完整 LINE 歷史對話流：")
+
+                # ✅ FIX 8: 同時確認 contact_name 欄位存在，避免 KeyError
+                if (
+                    "line_user_id" in contacts_df.columns
+                    and "contact_name" in contacts_df.columns
+                ):
+                    contact_list_for_select = (
+                        contacts_df.set_index("contact_name")["line_user_id"].to_dict()
+                    )
+                    selected_chat_name = st.selectbox(
+                        "選擇要審查的屋主聊天室：", list(contact_list_for_select.keys())
+                    )
+                    target_line_user_id_for_chat = contact_list_for_select[selected_chat_name]
+
                 rename_dict = {
-                    "contact_name": "客戶名稱",
-                    "ad_source":    "🎯 廣告來源標籤",
-                    "case_status":  "📈 案件狀態",
-                    "designer_name":"負責設計師",
-                    "last_message": "💬 最新 LINE 對話"
+                    "contact_name":  "客戶名稱",
+                    "ad_source":     "🎯 廣告來源標籤",
+                    "case_status":   "📈 案件狀態",
+                    "designer_name": "負責設計師",
+                    "last_message":  "💬 摘要最新訊息",
                 }
                 actual_rename = {k: v for k, v in rename_dict.items() if k in contacts_df.columns}
                 contacts_df = contacts_df.rename(columns=actual_rename)
                 display_cols = [col for col in contacts_df.columns if col in rename_dict.values()]
 
                 if display_cols:
-                    # ✅ Fix 4: width='stretch' → use_container_width=True
+                    # ✅ FIX 4 (同): width='stretch' → use_container_width=True
                     st.dataframe(contacts_df[display_cols], use_container_width=True, hide_index=True)
                 else:
                     st.dataframe(contacts_df, use_container_width=True, hide_index=True)
             else:
                 st.info("💡 目前您的名下沒有任何客戶名單。")
 
+        except Exception as e:
+            st.error(f"讀取安全檢視表失敗: {e}")
+
+
+# ==========================================
+# 💬 7. 終極自證：真．LINE 歷史對話流審查器 (一條不漏)
+# ==========================================
+# ✅ FIX 9: section 7 原始縮排完全脫落 → 全部補回正確縮排
+if target_line_user_id_for_chat:
+    st.markdown("---")
+    st.subheader(
+        f"💬 LINE 官方帳號對話流審查 ❯ 正在檢視：【{selected_chat_name}】的完整歷史紀錄"
+    )
+    try:
+        messages_query = (
+            supabase.table("messages")
+            .select("*")
+            .eq("line_user_id", target_line_user_id_for_chat)
+            .order("created_at", ascending=True)
+            .execute()
+        )
+        chat_history = messages_query.data
+
+        if chat_history:
+            for msg in chat_history:
+                sender = "user" if msg.get("sender_type") == "client" else "assistant"
+                avatar_icon = "👤" if sender == "user" else "🤖"
+                with st.chat_message(sender, avatar=avatar_icon):
+                    st.write(msg.get("message_text"))
+                    if "created_at" in msg:
+                        st.caption(f"發送時間: {msg['created_at'][:19].replace('T', ' ')}")
+        else:
+            st.info("💡 該客戶目前尚無詳細訊息對話流紀錄。")
+
+    except Exception as e:
+        st.error(f"拉取完整對話歷史流失敗: {e}")
         except Exception as e:
             st.error(f"讀取安全檢視表失敗: {e}")
