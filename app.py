@@ -4,12 +4,12 @@ import pandas as pd
 
 # 1. 安全讀取秘密環境變數（支援地端與雲端雙棲）
 try:
-    SUPABASE_URL = st.secrets["https://aeqteslaqeswiahwqgpi.supabase.co"]
-    SUPABASE_KEY = st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlcXRlc2xhcWVzd2lhaHdxZ3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MjY1MjQsImV4cCI6MjEwODEwMjUyNH0.Fla34T4FcVXgf_n5ygUICGmXciiWxhnfWuRxLHsY8WU"]
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 except Exception:
     # 如果雲端 secrets 沒抓到，自動降級讀取本地字串（方便您測試）
     SUPABASE_URL = "https://supabase.co"
-    SUPABASE_KEY = "你的your-anon-key"
+    SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlcXRlc2xhcWVzd2lhaHdxZ3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MjY1MjQsImV4cCI6MjEwODEwMjUyNH0.Fla34T4FcVXgf_n5ygUICGmXciiWxhnfWuRxLHsY8WU"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
