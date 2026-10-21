@@ -23,18 +23,13 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # ==========================================
 # 📥 2. 核心技術展示：模擬 FastAPI 非同步去重中樞
 # ==========================================
-# 👑 頂級防禦級別的解析：確保面對任何畸形或惡意封包都絕不崩潰
 async def mock_fastapi_webhook_backend(payload: dict):
-    """模擬後端 FastAPI 接收到 LINE Webhook 後的非同步背景任務"""
+    """模擬後端 FastAPI 接收到 LINE Webhook 後的非同步背景任務 (頂級型別防禦)"""
     await asyncio.sleep(0.1)
-    
-    # 1. 安全層層剝離 JSON
     webhook_payload = payload.get("webhook_payload", {})
     events_list = webhook_payload.get("events", [])
     
     line_message_id = "MOCK_ID"
-    
-    # 2. 嚴格驗證型別與陣列長度 (防禦 list 索引溢位或型別不符)
     if isinstance(events_list, list) and len(events_list) > 0:
         first_event = events_list[0]
         if isinstance(first_event, dict):
@@ -44,14 +39,14 @@ async def mock_fastapi_webhook_backend(payload: dict):
 
 
 # ==========================================
-# 🎨 3. Streamlit 前端網頁與多租戶設計 (2026 最新標準)
+# 🎨 3. Streamlit 前端網頁安全初始化
 # ==========================================
-st.set_page_config(layout="wide", page_title="Amour CRM 企業管理系統")
+st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
 
 if "mock_tenant" not in st.session_state:
     st.session_state.mock_tenant = "愛沐家居 (A公司)"
 
-st.title("👑 Amour CRM 企業管理 (SaaS 原型系統)")
+st.title("👑CRM 企業管理系統)")
 
 # 撈取使用者資料
 try:
@@ -79,60 +74,23 @@ with st.sidebar:
         st.warning("請先在 Supabase 寫入使用者資料")
         current_user = None
 
-# 核心隔離顯示邏輯
-if current_user:
-    st.subheader(f"📋 客戶追蹤名單 ── 【{st.session_state.mock_tenant}】 ❯ 登入視角：{current_user['name']}")
-    
-    if st.session_state.mock_tenant == "他牌系統家具 (B公司)":
-        st.info("🔒 跨企業隔離成功：此處為B公司獨立租戶空間。A公司（愛沐家居）的客戶資料已受底層保護，完全不顯示。")
-    else:
-        try:
-            # 從安全檢視表撈取資料
-            if current_user["role"] == "admin":
-                query = supabase.table("v_designer_contacts").select("*").execute()
-            else:
-                query = supabase.table("v_designer_contacts").select("*").eq("assigned_designer_id", current_user["id"]).execute()
-                
-            contacts_df = pd.DataFrame(query.data)
-            
-            if not contacts_df.empty:
-                rename_dict = {
-                    "contact_name": "客戶名稱",
-                    "ad_source": "🎯 廣告來源標籤",
-                    "case_status": "📈 案件狀態",
-                    "designer_name": "負責設計師",
-                    "last_message": "💬 最新 LINE 對話"
-                }
-                
-                actual_rename = {k: v for k, v in rename_dict.items() if k in contacts_df.columns}
-                contacts_df = contacts_df.rename(columns=actual_rename)
-                display_cols = [col for col in contacts_df.columns if col in rename_dict.values()]
-                
-                if display_cols:
-                    st.dataframe(contacts_df[display_cols], width='stretch', hide_index=True)
-                else:
-                    st.dataframe(contacts_df, width='stretch', hide_index=True)
-            else:
-                st.info("💡 目前您的名下沒有任何客戶名單。")
-        except Exception as e:
-            st.error(f"讀取安全檢視表失敗: {e}")
 
 # ==========================================
-# 🛠️ 4. 終極 DEMO 實戰測試工具箱 (高階流動追蹤模擬)
+# 🛠️ 4. 【位置對調】上半部：DEMO 實戰測試工具箱 (無 LINE OA 模擬)
 # ==========================================
-st.markdown("---")
-st.header("🛠️ DEMO 實戰測試工具箱 (模擬無 LINE OA 進件與整合)")
+st.header("🛠️ DEMO (模擬無 LINE OA)")
 
 if st.session_state.mock_tenant == "他牌系統家具 (B公司)":
     st.warning("⚠️ 請將左側企業切換回「愛沐家居 (A公司)」以進行內部驗證場域的進件模擬。")
+    contact_map = {}
 else:
     tab1, tab2, tab3 = st.tabs(["📥 核心驗證 A：新客首期 Webhook 派工", "💬 核心驗證 B：熟客追加新對話 (自動分流測試)", "🔌 Ragic 外部 CRM 唯讀連接器"])
     
     # ─── TAB 1: 新客首期派工 (限主管) ───
     with tab1:
         if current_user and current_user["role"] != "admin":
-            st.warning(f"🔒 權限攔截：當前身分【{current_user['name']}】為設計師。新客首期「派工」僅限【主管 / 行政 (Admin)】執行。")
-            st.info("💡 請在左側將身分切換為主管，即可解鎖派工工具。")
+            st.warning(f"🔒 權限攔截：當前身分【{current_user['name']}】為設計師。新客首期「派工與指定負責人」僅限【主管 / 行政 (Admin)】執行。")
+            st.info("💡 主管可解鎖派工工具。")
         else:
             st.write("💡 **展示劇本**：新客進件時為「公海狀態」，僅有行政主管可進行首次指派。")
             col1, col2, col3 = st.columns(3)
@@ -174,7 +132,7 @@ else:
                 except Exception as e:
                     st.error(f"模擬進件寫入失敗: {e}")
                     
-    # ─── TAB 2: 熟客追加新對話 (自證自動分流！不限權限) ───
+    # ─── TAB 2: 熟客追加新對話 (自動分流測試) ───
     with tab2:
         st.write("💡 **自動分流實證劇本**：此處模擬客戶後續自行傳送 LINE。後端 Webhook 僅會收到 LINE ID 與文字，系統將自證是否能自動歸流至原負責人！")
         
@@ -195,7 +153,6 @@ else:
             if st.button("💬 模擬客戶追加傳送 LINE 訊息 (自證分流)", type="primary"):
                 mock_append_event_id = f"msg_append_{random.randint(1000, 9999)}"
                 try:
-                    # 僅寫入訊息表，資料庫底層 View 會自動 JOIN 分流
                     supabase.table("messages").insert({
                         "line_message_id": mock_append_event_id,
                         "line_user_id": target_line_id,
@@ -203,7 +160,6 @@ else:
                         "message_text": append_msg
                     }).execute()
                     
-                    # 建立正確的 LINE Webhook JSON 結構 (events 是 list)
                     mock_payload = {
                         "tenant_id": "amour_furniture_tenant_id",
                         "status": "Webhook 僅收到 LINE_ID，後端自動盲配追蹤中",
@@ -216,18 +172,16 @@ else:
                         }
                     }
                     
-                    # 呼叫模擬非同步後端
                     log_msg = asyncio.run(mock_fastapi_webhook_backend(mock_payload))
-                    
                     st.toast("新對話已衝入 Webhook 中樞！", icon="💬")
-                    st.success(f"🔥 訊息發送成功！後端已接收。請刷新或切換上方登入身分驗證自動分流成果！")
-                    st.info(log_msg)
+                    st.success(f"🔥 訊息發送成功！後端已接收。下方列表已完成自動配對分流！")
                     st.json(mock_payload)
+                    st.rerun()
                     
                 except Exception as e:
                     st.error(f"追加訊息失敗: {e}")
                     
-    # ─── TAB 3: Ragic 外部 CRM 唯讀連接器 ───
+    # ─── TAB 3: Ragic 外部 CRM 連接器 ───
     with tab3 if contact_map else tab2:
         st.write("💡 **商用驗收點**：既有 Ragic CRM 連接測試。")
         st.info("🔌 當前安全狀態：【唯讀測試模式 (Read-Only)】。")
@@ -239,3 +193,42 @@ else:
         if st.button("⚡ 測試 Ragic 唯讀資料抓取與欄位對齊"):
             st.toast("Ragic API 連線測試成功！", icon="🔌")
             st.success("🎯 驗證通過：順利拉取 Ragic 現有客戶清單。")
+
+
+# ==========================================
+# 📋 5. 【位置對調】下半部：核心隔離顯示名單 (含老闆30則/設計師10則效能限制)
+# ==========================================
+st.markdown("---")
+if current_user:
+    # 建立動態筆數描述文字
+    limit_count = 30 if current_user["role"] == "admin" else 10
+    st.subheader(f"📋 客戶追蹤名單 ── 【{st.session_state.mock_tenant}】 ❯ 登入視角：{current_user['name']} (效能載入優化：保留最新 {limit_count} 則)")
+    
+    if st.session_state.mock_tenant == "他牌系統家具 (B公司)":
+        st.info("🔒 跨企業隔離成功：此處為B公司獨立租戶空間。A公司（愛沐家居）的客戶資料已受底層保護，完全不顯示。")
+    else:
+        try:
+            # 👑 實施 CTO 級別效能優化：根據角色限制拉取筆數 (老闆保留30則，設計師保留10則)
+            if current_user["role"] == "admin":
+                query = supabase.table("v_designer_contacts").select("*").limit(30).execute()
+            else:
+                query = supabase.table("v_designer_contacts").select("*").eq("assigned_designer_id", current_user["id"]).limit(10).execute()
+                
+            contacts_df = pd.DataFrame(query.data)
+            
+            if not contacts_df.empty:
+                rename_dict = {
+                    "contact_name": "客戶名稱",
+                    "ad_source": "🎯 廣告來源標籤",
+                    "case_status": "📈 案件狀態",
+                    "designer_name": "負責設計師",
+                    "last_message": "💬 最新 LINE 對話"
+                }
+                
+                actual_rename = {k: v for k, v in rename_dict.items() if k in contacts_df.columns}
+                contacts_df = contacts_df.rename(columns=actual_rename)
+                display_cols = [col for col in contacts_df.columns if col in rename_dict.values()]
+                
+                if display_cols:
+                    st.dataframe(contacts_df[display_cols], width='stretch', hide_index=True)
+                else:
