@@ -2,20 +2,26 @@ import streamlit as st
 from supabase import create_client, Client
 import pandas as pd
 
-# 1. 初始化設定（請更換成你自己的 Supabase 網址與憑證）
-SUPABASE_URL = "https://aeqteslaqeswiahwqgpi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlcXRlc2xhcWVzd2lhaHdxZ3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MjY1MjQsImV4cCI6MjEwODEwMjUyNH0.Fla34T4FcVXgf_n5ygUICGmXciiWxhnfWuRxLHsY8WU"
+# 1. 安全讀取秘密環境變數（支援地端與雲端雙棲）
+try:
+    SUPABASE_URL = st.secrets["https://aeqteslaqeswiahwqgpi.supabase.co"]
+    SUPABASE_KEY = st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlcXRlc2xhcWVzd2lhaHdxZ3BpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1MjY1MjQsImV4cCI6MjEwODEwMjUyNH0.Fla34T4FcVXgf_n5ygUICGmXciiWxhnfWuRxLHsY8WU"]
+except Exception:
+    # 如果雲端 secrets 沒抓到，自動降級讀取本地字串（方便您測試）
+    SUPABASE_URL = "https://supabase.co"
+    SUPABASE_KEY = "你的your-anon-key"
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(layout="wide", page_title="CRM 管理系統")
-st.title("💬 CRM 企業管理後台 (DEMO 原型)")
+st.title("💬CRM 企業管理 (DEMO 原型)")
 
-# 2. 撈取資料庫現有的員工，建立側邊欄帳號切換登入器 (DEMO 用)
+# 2. 撈取使用者資料
 try:
     users_data = supabase.table("users").select("*").execute().data
     user_options = {u["name"]: u for u in users_data}
 except Exception as e:
-    st.error(f"資料庫連線失敗: {e}")
+    st.error(f"資料庫連線失敗，請檢查 Supabase 設定: {e}")
     user_options = {}
 
 with st.sidebar:
@@ -28,25 +34,19 @@ with st.sidebar:
         st.warning("請先在 Supabase 寫入使用者資料")
         current_user = None
 
-# 3. 根據登入者的權限，使用不同的 SQL 邏輯撈取客戶資料 (防搶單核心)
+# 3. 核心隔離顯示邏輯（防搶單）
 if current_user:
     st.subheader(f"📋 客戶追蹤名單 ── 登入視角：{current_user['name']}")
     
-    # 💡 核心 SQL 隔離邏輯
     if current_user["role"] == "admin":
-        # 主管權限：看全部資料
         query = supabase.table("v_designer_contacts").select("*").execute()
     else:
-        # 設計師權限：只看指派給自己的客戶（防搶單物理隔離）
         query = supabase.table("v_designer_contacts").select("*").eq("assigned_designer_id", current_user["id"]).execute()
         
     contacts_df = pd.DataFrame(query.data)
     
-    # 💡 修改後的防呆核心隔離顯示邏輯
-    contacts_df = pd.DataFrame(query.data)
-    
     if not contacts_df.empty:
-        # 1. 先定義好我們「希望」對照轉換的字典
+        # 👑 萬用防禦機制：先將現有欄位直接對照中文，完全不寫死
         rename_dict = {
             "contact_name": "客戶名稱",
             "ad_source": "🎯 廣告來源標籤",
@@ -55,22 +55,24 @@ if current_user:
             "last_message": "💬 最新 LINE 對話"
         }
         
-        # 2. 動態檢查：只有「真正存在」於 contacts_df 裡的欄位才進行改名
+        # 僅對「真正存在」的欄位改名
         actual_rename = {k: v for k, v in rename_dict.items() if k in contacts_df.columns}
         contacts_df = contacts_df.rename(columns=actual_rename)
         
-        # 3. 動態決定要顯示哪些欄位（防止因為某個欄位不存在而噴 KeyError）
-        desired_cols = ["客戶名稱", "🎯 廣告來源標籤", "📈 案件狀態", "負責設計師", "💬 最新 LINE 對話"]
-        display_cols = [col for col in desired_cols if col in contacts_df.columns]
+        # 👑 終極保險絲：動態抓取「改名後」出現在 DataFrame 裡的所有欄位，絕對不手寫中文字串群
+        display_cols = [col for col in contacts_df.columns if col in rename_dict.values()]
         
-        # 4. 輸出表格
-        st.dataframe(contacts_df[display_cols], use_container_width=True, hide_index=True)
+        if display_cols:
+            st.dataframe(contacts_df[display_cols], use_container_width=True, hide_index=True)
+        else:
+            # 萬一連一個對照欄位都沒有，直接裸秀現有欄位，確保網頁絕不紅字崩潰
+            st.dataframe(contacts_df, use_container_width=True, hide_index=True)
     else:
         st.info("💡 目前您的名下沒有任何客戶名單。")
 
-# 4. DEMO 工具箱：手動模擬新客戶從廣告進件 (不需要 LINE 就能測試！)
+# 4. 模擬工具箱
 st.markdown("---")
-st.header("🛠️ DEMO 測試工具箱")
+st.header("🛠️ DEMO 實戰測試工具箱 (免開 LINE 模擬客戶進件)")
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -83,27 +85,27 @@ with col3:
         mock_designer_id = user_options[mock_designer_name]["id"]
 
 if st.button("🚀 模擬客戶點擊廣告並加入 LINE (寫入資料庫)", type="primary"):
-    # 產生一組假的 LINE User ID
     import random
     fake_line_id = f"U{random.randint(10000000, 99999999)}"
     
-    # 寫入客戶表
-    supabase.table("contacts").insert({
-        "line_user_id": fake_line_id,
-        "name": mock_name,
-        "assigned_designer_id": mock_designer_id,
-        "utm_source": mock_ad,
-        "status": "初次洽談"
-    }).execute()
-    
-    # 寫入第一則訊息
-    supabase.table("messages").insert({
-        "line_message_id": f"msg_{random.randint(100000, 999999)}",
-        "line_user_id": fake_line_id,
-        "sender_type": "client",
-        "message_text": "你好，我點擊廣告進來，想要諮詢室內設計預算！"
-    }).execute()
-    
-    st.balloons()
-    st.success(f"🎉 成功模擬進件！【{mock_name}】已自動指派給【{mock_designer_name}】，標籤為：{mock_ad}。請切換上方登入身分驗證隔離效果！")
-
+    try:
+        supabase.table("contacts").insert({
+            "line_user_id": fake_line_id,
+            "name": mock_name,
+            "assigned_designer_id": mock_designer_id,
+            "utm_source": mock_ad,
+            "status": "初次洽談"
+        }).execute()
+        
+        supabase.table("messages").insert({
+            "line_message_id": f"msg_{random.randint(100000, 999999)}",
+            "line_user_id": fake_line_id,
+            "sender_type": "client",
+            "message_text": "你好，我點擊廣告進來，想要諮詢室內設計預算！"
+        }).execute()
+        
+        st.balloons()
+        st.success(f"🎉 成功模擬進件！請重新整理或切換身分驗證效果！")
+        st.rerun() # 自動強制網頁重新整理整理，即時刷新資料
+    except Exception as e:
+        st.error(f"模擬進件寫入失敗: {e}")
