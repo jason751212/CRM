@@ -51,7 +51,7 @@ st.title("👑 CRM 企業管理系統")
 # 撈取使用者資料
 try:
     users_data = supabase.table("users").select("*").execute().data
-    user_options = {u["ne"]: u for u in users_data}
+    user_options = {u["name"]: u for u in users_data}
 except Exception as e:
     st.error(f"資料庫連線失敗，請檢查 Supabase 設定: {e}")
     user_options = {}
