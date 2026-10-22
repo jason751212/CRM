@@ -20,6 +20,7 @@ except Exception:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+
 # ==========================================
 # 📥 2. 核心技術展示：模擬 FastAPI 非同步去重中樞
 # ==========================================
@@ -39,14 +40,14 @@ async def mock_fastapi_webhook_backend(payload: dict):
 
 
 # ==========================================
-# 🎨 3. Strelit 前端網頁安全初始化
+# 🎨 3. Streamlit 前端網頁安全初始化
 # ==========================================
 st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
 
 if "mock_tenant" not in st.session_state:
     st.session_state.mock_tenant = "愛沐家居"
 
-st.title("👑 CRM 企業管理系統")
+st.title("👑CRM 企業管理系統")
 
 # 撈取使用者資料
 try:
@@ -67,9 +68,9 @@ with st.sidebar:
     st.markdown("---")
     st.header("🔑 模擬員工內部權限")
     if user_options:
-        selected_userne = st.selectbox("請選擇當前登入者身分：", list(user_options.keys()))
+        selected_username = st.selectbox("請選擇當前登入者身分：", list(user_options.keys()))
         current_user = user_options[selected_username]
-        st.success(f"當前身分：{current_user['username']} \n\n權限級別：{current_user['role'].upper()}")
+        st.success(f"當前身分：{current_user['name']} \n\n權限級別：{current_user['role'].upper()}")
     else:
         st.warning("請先在 Supabase 寫入使用者資料")
         current_user = None
@@ -78,7 +79,7 @@ with st.sidebar:
 # ==========================================
 # 🛠️ 4. 上半部：DEMO 實戰測試工具箱 (無 LINE OA 模擬)
 # ==========================================
-st.header("🛠️ DEMO SandBox (模擬)")
+st.header("🛠️ DEMO SandBox")
 
 # ✅ FIX 1: 提前初始化，避免 "他牌" 分支與 tab2 try/except 例外時 NameError
 contact_map: dict = {}
@@ -111,7 +112,7 @@ else:
                     ["FB_2026現代北歐風專案", "IG_工業風限時送丈量", "門市實體QR_Code", "自然流量"]
                 )
             with col3:
-                if :
+                if user_options:
                     mock_designer_name = st.selectbox(
                         "指定分派給哪位設計師 (限主管權限)",
                         [k for k, v in user_options.items() if v["role"] == "designer"]
@@ -120,7 +121,7 @@ else:
 
             mock_msg = st.text_area(
                 "模擬屋主在 LINE 傳送的【第一條】諮詢內容：",
-                value="你好，我想諮詢新成屋室內設計，預算大約300萬！"
+                value="你好，我想諮詢新成屋室內設計，預算大約30萬！"
             )
 
             if st.button("🚀 執行新客首期 Webhook 派工並寫入", type="primary"):
@@ -212,7 +213,6 @@ else:
 
                 except Exception as e:
                     st.error(f"追加訊息失敗: {e}")
-
 # ─── TAB 3: Ragic 外部 CRM 連接器 ───
 # ✅ FIX 3: 原本 `with tab3 if contact_map else tab2` 邏輯錯誤
 #    → 當 contact_map 為空時會把 Ragic 內容誤塞回 tab2，改為固定使用 tab3
