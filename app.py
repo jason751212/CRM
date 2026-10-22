@@ -39,7 +39,7 @@ async def mock_fastapi_webhook_backend(payload: dict):
 
 
 # ==========================================
-# 🎨 3. Streamlit 前端網頁安全初始化
+# 🎨 3. Strelit 前端網頁安全初始化
 # ==========================================
 st.set_page_config(layout="wide", page_title="CRM 企業管理系統")
 
@@ -51,7 +51,7 @@ st.title("👑 CRM 企業管理系統")
 # 撈取使用者資料
 try:
     users_data = supabase.table("users").select("*").execute().data
-    user_options = {u["name"]: u for u in users_data}
+    user_options = {u["ne"]: u for u in users_data}
 except Exception as e:
     st.error(f"資料庫連線失敗，請檢查 Supabase 設定: {e}")
     user_options = {}
@@ -67,7 +67,7 @@ with st.sidebar:
     st.markdown("---")
     st.header("🔑 模擬員工內部權限")
     if user_options:
-        selected_username = st.selectbox("請選擇當前登入者身分：", list(user_options.keys()))
+        selected_userne = st.selectbox("請選擇當前登入者身分：", list(user_options.keys()))
         current_user = user_options[selected_username]
         st.success(f"當前身分：{current_user['name']} \n\n權限級別：{current_user['role'].upper()}")
     else:
@@ -393,8 +393,7 @@ if target_line_user_id_for_chat:
         f"📱 LINE 官方帳號對話流控制台 ❯ 正在檢視：【{selected_chat_name}】"
     )
     st.write(
-        "💡 **習慣轉變自證**：員工在此介面直接回覆，"
-        "系統會同步利用 LINE API 發送至客戶手機，並 100% 留存完整對話流！"
+        "💡 員工在此介面直接回覆"
     )
 
     # 📥 初始化一鍵快發點擊狀態的 Session State
@@ -414,7 +413,7 @@ if target_line_user_id_for_chat:
     with c2:
         if st.button("💳 傳送匯款帳號", use_container_width=True):
             st.session_state[click_key] = (
-                "Amour CRM 專用帳戶：玉山銀行 (808) 帳號：XXXX-XXXX-XXXX"
+                "專用帳戶：玉山銀行 (808) 帳號：XXXX-XXXX-XXXX"
             )
     with c3:
         if st.button("⏱️ 提醒安排丈量", use_container_width=True):
