@@ -69,7 +69,7 @@ with st.sidebar:
     if user_options:
         selected_userne = st.selectbox("請選擇當前登入者身分：", list(user_options.keys()))
         current_user = user_options[selected_username]
-        st.success(f"當前身分：{current_user['name']} \n\n權限級別：{current_user['role'].upper()}")
+        st.success(f"當前身分：{current_user['username']} \n\n權限級別：{current_user['role'].upper()}")
     else:
         st.warning("請先在 Supabase 寫入使用者資料")
         current_user = None
@@ -111,7 +111,7 @@ else:
                     ["FB_2026現代北歐風專案", "IG_工業風限時送丈量", "門市實體QR_Code", "自然流量"]
                 )
             with col3:
-                if user_options:
+                if :
                     mock_designer_name = st.selectbox(
                         "指定分派給哪位設計師 (限主管權限)",
                         [k for k, v in user_options.items() if v["role"] == "designer"]
